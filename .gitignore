@@ -1,2 +1,3 @@
-0identifiers.lst
-harvest
+site/*/records
+site/*/identifiers.lst
+site/*/identifiers.time
