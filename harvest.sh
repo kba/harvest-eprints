@@ -22,29 +22,50 @@ EXAMPLE_URLS="
   * epub.uni-regensburg.de
   * archiv.ub.uni-heidelberg.de/volltextserver"
 
+COMMANDS=(
+    'debug'
+    'identifiers'
+    'harvest'
+    'xquery'
+    )
+
 
 # coloring method $(C)
 source ~/.shcolor.sh 2>/dev/null || source <(wget -qO- https://raw.githubusercontent.com/kba/shcolor/master/shcolor.sh|tee ~/.shcolor.sh)
 
 usage() {
-    echo "Usage: $(C 4)$0$(C) <$(C 2)harvest$(C)|$(C 2)identifiers$(C)|$(C 2)debug$(C)> <$(C 3)baseurl$(C)>"
-    [[ ! -z "$1" ]] && { echo -e "\n$(C 1)ERROR$(C): $1"; }
+    echo "Usage: $(C 4)$0$(C) <$(C 2)${COMMANDS[*]}$(C)> <$(C 3)baseurl$(C)>"
+        [[ ! -z "$1" ]] && { echo -e "\n$(C 1)$1$(C)"; }
     exit "$2"
 }
+
 
 timestamp() {
     date +"%Y-%m-%dT%H:%M:%SZ"
 }
 
-prepare() {
-    BASE_DIR="./site"
+setup_vars() {
+    BASE_DIR=${BASE_DIR:-./site}
+    if [[ -z "$BASEURL" ]];then
+        # shellcheck disable=SC2012
+        usage "$(C 8)ERROR$(C): Must specify baseurl.
+Existing:
+$(ls "$BASE_DIR"|sed 's/^/  * /g')
+Examples: $EXAMPLE_URLS
+" 1;
+    fi
     SITE_DIR="$BASE_DIR/$BASEURL"
     HARVEST_DIR="$SITE_DIR/records"
-    mkdir -pv "$SITE_DIR"
-    mkdir -pv "$HARVEST_DIR"
+    BASEX_DBPATH="$SITE_DIR/BaseXData"
     DEFAULT_TIMESTAMP="2000-01-01T00:00:00Z"
     IDENTIFIER_LIST="$SITE_DIR/identifiers.lst"
     TIMESTAMP_FILE="$SITE_DIR/identifiers.time"
+}
+
+setup_sitedir() {
+    mkdir -pv "$SITE_DIR"
+    mkdir -pv "$HARVEST_DIR"
+    mkdir -pv "$BASEX_DBPATH"
     if [[ ! -e "$TIMESTAMP_FILE" ]];then
         echo "$DEFAULT_TIMESTAMP" > "$TIMESTAMP_FILE"
     fi
@@ -102,21 +123,44 @@ harvest() {
     done < "$IDENTIFIER_LIST"
 }
 
+xquery() {
+    export JAVA_ARGS="-Dorg.basex.DBPATH='$BASEX_DBPATH'"
+    # ... TODO
+}
+
 #------------------------------------------------------------------------------
 # main
 #------------------------------------------------------------------------------
 
 ACTION="$1"
-BASEURL="$2"
 
-which curl >/dev/null                  || { usage "Requires curl (sudo apt-get install curl)" 1; }
-which xmlstarlet >/dev/null            || { usage "Requires curl (sudo apt-get install xmlstarlet)" 1; }
-[[ -z "$ACTION"  ]]                    && { usage "Must specify action" 1; }
-[[ "$ACTION" =~ debug|identifiers|harvest ]] || { usage "Invalid action '$ACTION'" 1; }
-[[ -z "$BASEURL" ]]                    && { usage "Must specify baseurl. Examples: $EXAMPLE_URLS" 1; }
+which curl >/dev/null \
+    || { usage "$(C 8)ERROR$(C): Requires curl (sudo apt-get install curl)" 1; }
+which xmlstarlet >/dev/null \
+    || { usage "$(C 8)ERROR$(C): Requires curl (sudo apt-get install xmlstarlet)" 1; }
+which basex >/dev/null \
+    || { usage "$(C 8)ERROR$(C): Requires curl (sudo apt-get install basex)" 1; }
+[[ -z "$ACTION"  ]]\
+    && { usage "$(C 8)ERROR$(C): Must specify action" 1; }
 
 # setup variables
-prepare
 
-# execute action
+case "$ACTION" in
+    debug)
+        BASEURL="$2"
+        if [[ -z "$BASEURL" ]];then
+            BASEURL="not-specified"
+        fi
+        setup_vars
+        ;;
+    identifiers|harvest|xquery)
+        BASEURL="$2"
+        setup_vars
+        setup_sitedir
+        ;;
+     *)
+         usage "$(C 8)ERROR$(C): Invalid action '$ACTION'" 1
+         ;;
+esac
+
 $ACTION
