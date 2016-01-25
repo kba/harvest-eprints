@@ -13,6 +13,15 @@
 #     ├── identifiers.lst  # $IDENTIFIER_LIST
 #     └── identifiers.time # $TIMESTAMP_FILE
 
+EXAMPLE_URLS="
+  * epub.uni-bayreuth.de
+  * kups.ub.uni-koeln.de
+  * oops.uni-oldenburg.de
+  * ub-madoc.bib.uni-mannheim.de
+  * edoc.ub.uni-muenchen.de
+  * epub.uni-regensburg.de
+  * archiv.ub.uni-heidelberg.de/volltextserver"
+
 
 # coloring method `C`
 source ~/.shcolor.sh 2>/dev/null || source <(wget -qO- https://raw.githubusercontent.com/kba/shcolor/master/shcolor.sh|tee ~/.shcolor.sh)
@@ -28,14 +37,6 @@ timestamp() {
 }
 
 prepare() {
-    EXAMPLE_URLS="
-      * epub.uni-bayreuth.de
-      * kups.ub.uni-koeln.de
-      * oops.uni-oldenburg.de
-      * ub-madoc.bib.uni-mannheim.de
-      * edoc.ub.uni-muenchen.de
-      * epub.uni-regensburg.de
-      * archiv.ub.uni-heidelberg.de/volltextserver"
     BASE_DIR="./site"
     SITE_DIR="$BASE_DIR/$BASEURL"
     HARVEST_DIR="$SITE_DIR/records"
