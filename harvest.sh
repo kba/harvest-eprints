@@ -23,13 +23,13 @@ EXAMPLE_URLS="
   * archiv.ub.uni-heidelberg.de/volltextserver"
 
 
-# coloring method `C`
+# coloring method $(C)
 source ~/.shcolor.sh 2>/dev/null || source <(wget -qO- https://raw.githubusercontent.com/kba/shcolor/master/shcolor.sh|tee ~/.shcolor.sh)
 
 usage() {
-    echo "Usage: `C 4`$0`C` <`C 2`harvest`C`|`C 2`identifiers`C`|`C 2`harvest`C`> <`C 3`baseurl`C`>"
-    [[ ! -z "$1" ]] && { echo -e "\n`C 1`ERROR`C`: $1"; }
-    exit $2
+    echo "Usage: $(C 4)$0$(C) <$(C 2)harvest$(C)|$(C 2)identifiers$(C)|$(C 2)debug$(C)> <$(C 3)baseurl$(C)>"
+    [[ ! -z "$1" ]] && { echo -e "\n$(C 1)ERROR$(C): $1"; }
+    exit "$2"
 }
 
 timestamp() {
@@ -53,15 +53,15 @@ prepare() {
 }
 
 debug() {
-    echo "ACTION            '`C 11`$ACTION`C`'"
-    echo "BASEURL           '`C 11`$BASEURL`C`'"
-    echo "BASE_DIR          '`C 11`$BASE_DIR`C`'"
-    echo "SITE_DIR          '`C 11`$SITE_DIR`C`'"
-    echo "HARVEST_DIR       '`C 11`$HARVEST_DIR`C`'"
-    echo "DEFAULT_TIMESTAMP '`C 11`$DEFAULT_TIMESTAMP`C`'"
-    echo "IDENTIFIER_LIST   '`C 11`$IDENTIFIER_LIST`C`'"
-    echo "TIMESTAMP         '`C 11`$TIMESTAMP`C`'"
-    echo "IDENTIFIER_URL    '`C 11`$IDENTIFIER_URL`C`'"
+    echo "ACTION            '$(C 11)$ACTION$(C)'"
+    echo "BASEURL           '$(C 11)$BASEURL$(C)'"
+    echo "BASE_DIR          '$(C 11)$BASE_DIR$(C)'"
+    echo "SITE_DIR          '$(C 11)$SITE_DIR$(C)'"
+    echo "HARVEST_DIR       '$(C 11)$HARVEST_DIR$(C)'"
+    echo "DEFAULT_TIMESTAMP '$(C 11)$DEFAULT_TIMESTAMP$(C)'"
+    echo "IDENTIFIER_LIST   '$(C 11)$IDENTIFIER_LIST$(C)'"
+    echo "TIMESTAMP         '$(C 11)$TIMESTAMP$(C)'"
+    echo "IDENTIFIER_URL    '$(C 11)$IDENTIFIER_URL$(C)'"
 }
 
 identifiers() {
@@ -71,34 +71,35 @@ identifiers() {
     fi
     echo "Retrieving '${url}'"
     response="$(curl -s "$url")"
-    echo $response | xmlstarlet sel -t -v '//*[local-name()="header"][not(@status)]/*[local-name()="identifier"]' >> "$IDENTIFIER_LIST"
+    echo "$response" | xmlstarlet sel -t -v '//*[local-name()="header"][not(@status)]/*[local-name()="identifier"]' >> "$IDENTIFIER_LIST"
     echo >> "$IDENTIFIER_LIST"
-    resumptionToken=$(echo $response | xmlstarlet sel -t -v '//*[local-name()="resumptionToken"]')
+    resumptionToken=$(echo "$response" | xmlstarlet sel -t -v '//*[local-name()="resumptionToken"]')
     if [[ ! -z "$resumptionToken" ]];then
         sleep 1
         identifiers "$resumptionToken"
     else
         echo "Finished yay!"
-        echo >> $TIMESTAMP_FILE
-        timestamp >> $TIMESTAMP_FILE
+        echo >> "$TIMESTAMP_FILE"
+        timestamp >> "$TIMESTAMP_FILE"
     fi
 }
 
 harvest() {
     while read id;do
-        id=$(echo $id|sed 's/.*://')
+        # shellcheck disable=SC2001
+        id=$(echo "$id"|sed 's/.*://')
         url="http://$BASEURL/cgi/export/eprint/${id}/XML/${id}.xml"
         outfile="$HARVEST_DIR/${id}.xml"
         if [[ -e "$outfile" ]];then
-            echo "`C 1`Already loaded: '$url' -> '$outfile'`C`"
+            echo "$(C 1)Already loaded: '$url' -> '$outfile'$(C)"
             continue
         else
-            echo -n "`C 3`Downloading: '$url' `C`"
+            echo -n "$(C 3)Downloading: '$url' $(C)"
             curl -s -o "$outfile" "$url"
-            echo " `C 2`DONE`C`"
+            echo " $(C 2)DONE$(C)"
             sleep 1;
         fi
-    done < $IDENTIFIER_LIST
+    done < "$IDENTIFIER_LIST"
 }
 
 #------------------------------------------------------------------------------
