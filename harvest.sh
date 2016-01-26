@@ -136,7 +136,10 @@ xquery() {
     if [[ -z "$XQUERY" ]];then
         usage "Must provide <xquery>" 2
     fi
-    basex "-b${XQUERY_BINDINGS:-''}" -c"OPEN $BASEX_DB; RUN $XQUERY;"
+    if [[ -n "$XQUERY_BINDINGS" ]];then
+        XQUERY_BINDINGS="SET BINDINGS $XQUERY_BINDINGS;"
+    fi
+    basex -c"OPEN $BASEX_DB;$XQUERY_BINDINGS RUN $XQUERY;"
 }
 
 #------------------------------------------------------------------------------
