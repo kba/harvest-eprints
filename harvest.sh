@@ -34,7 +34,7 @@ COMMANDS=(
 source ~/.shcolor.sh 2>/dev/null || source <(wget -qO- https://raw.githubusercontent.com/kba/shcolor/master/shcolor.sh|tee ~/.shcolor.sh)
 
 usage() {
-    echo "Usage: $(C 4)$0$(C) <$(C 2)${COMMANDS[*]}$(C)> <$(C 3)baseurl$(C)>"
+    echo "Usage: $(C 4)$0$(C) <$(C 2)${COMMANDS[*]}$(C)> <$(C 3)baseurl$(C)> [$(C 3)xquery$(C) $(C 3)bindings$(C)]"
         [[ ! -z "$1" ]] && { echo -e "\n$(C 1)$1$(C)"; }
     exit "$2"
 }
@@ -45,6 +45,7 @@ timestamp() {
 }
 
 setup_vars() {
+    BASEX_DBPATH=${BASEX_DBPATH:-./BaseXData}
     BASE_DIR=${BASE_DIR:-./site}
     if [[ -z "$BASEURL" ]];then
         # shellcheck disable=SC2012
@@ -56,10 +57,12 @@ Examples: $EXAMPLE_URLS
     fi
     SITE_DIR="$BASE_DIR/$BASEURL"
     HARVEST_DIR="$SITE_DIR/records"
-    BASEX_DBPATH="$SITE_DIR/BaseXData"
     DEFAULT_TIMESTAMP="2000-01-01T00:00:00Z"
     IDENTIFIER_LIST="$SITE_DIR/identifiers.lst"
     TIMESTAMP_FILE="$SITE_DIR/identifiers.time"
+    export JAVA_ARGS="-Dorg.basex.DBPATH=$BASEX_DBPATH"
+    # shellcheck disable=SC2001
+    BASEX_DB=$(echo "$BASEURL"|sed 's/[^a-z]/_/g')
 }
 
 setup_sitedir() {
@@ -71,6 +74,12 @@ setup_sitedir() {
     fi
     TIMESTAMP="$(tail -n1 "$TIMESTAMP_FILE")"
     IDENTIFIER_URL="http://$BASEURL/cgi/oai2?verb=ListIdentifiers&metadataPrefix=oai_dc&from=$TIMESTAMP"
+}
+
+setup_basex() {
+    # set -x
+    mkdir -pv "$BASEX_DBPATH"
+    basex -c"CREATE DB $BASEX_DB $HARVEST_DIR"
 }
 
 debug() {
@@ -124,8 +133,10 @@ harvest() {
 }
 
 xquery() {
-    export JAVA_ARGS="-Dorg.basex.DBPATH='$BASEX_DBPATH'"
-    # ... TODO
+    if [[ -z "$XQUERY" ]];then
+        usage "Must provide <xquery>" 2
+    fi
+    basex "-b${XQUERY_BINDINGS:-''}" -c"OPEN $BASEX_DB; RUN $XQUERY;"
 }
 
 #------------------------------------------------------------------------------
@@ -137,9 +148,9 @@ ACTION="$1"
 which curl >/dev/null \
     || { usage "$(C 8)ERROR$(C): Requires curl (sudo apt-get install curl)" 1; }
 which xmlstarlet >/dev/null \
-    || { usage "$(C 8)ERROR$(C): Requires curl (sudo apt-get install xmlstarlet)" 1; }
+    || { usage "$(C 8)ERROR$(C): Requires xmlstarlet (sudo apt-get install xmlstarlet)" 1; }
 which basex >/dev/null \
-    || { usage "$(C 8)ERROR$(C): Requires curl (sudo apt-get install basex)" 1; }
+    || { usage "$(C 8)ERROR$(C): Requires basex (sudo apt-get install basex)" 1; }
 [[ -z "$ACTION"  ]]\
     && { usage "$(C 8)ERROR$(C): Must specify action" 1; }
 
@@ -153,10 +164,18 @@ case "$ACTION" in
         fi
         setup_vars
         ;;
-    identifiers|harvest|xquery)
+    identifiers|harvest)
         BASEURL="$2"
         setup_vars
         setup_sitedir
+        ;;
+    xquery)
+        BASEURL="$2"
+        XQUERY="$3"
+        XQUERY_BINDINGS="$4"
+        setup_vars
+        setup_sitedir
+        setup_basex
         ;;
      *)
          usage "$(C 8)ERROR$(C): Invalid action '$ACTION'" 1
