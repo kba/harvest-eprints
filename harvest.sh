@@ -100,7 +100,7 @@ identifiers() {
         url="${url}&resumptionToken=$1"
     fi
     echo "Retrieving '${url}'"
-    response="$(curl -s "$url")"
+    response="$(curl -Ls "$url")"
     echo "$response" | xmlstarlet sel -t -v '//*[local-name()="header"][not(@status)]/*[local-name()="identifier"]' >> "$IDENTIFIER_LIST"
     echo >> "$IDENTIFIER_LIST"
     resumptionToken=$(echo "$response" | xmlstarlet sel -t -v '//*[local-name()="resumptionToken"]')
