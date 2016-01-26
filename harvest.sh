@@ -121,12 +121,17 @@ harvest() {
         url="http://$BASEURL/cgi/export/eprint/${id}/XML/${id}.xml"
         outfile="$HARVEST_DIR/${id}.xml"
         if [[ -e "$outfile" ]];then
-            echo "$(C 1)Already loaded: '$url' -> '$outfile'$(C)"
+            echo -en "$(C 3)✓$(C)"
             continue
         else
-            echo -n "$(C 3)Downloading: '$url' $(C)"
-            curl -s -o "$outfile" "$url"
-            echo " $(C 2)DONE$(C)"
+            idf=$(printf "%6d" "$id")
+            echo -n "$(C 3)…$(C)$idf"
+            curl -L -s -o "$outfile" "$url"
+            if [[ "$?" -ne 0 ]];then
+                echo -en "$(tput cub 7)$(C 1)✗$(C)"
+            else
+                echo -en "$(tput cub 7)$(C 2)✓$(C)"
+            fi
             sleep 1;
         fi
     done < "$IDENTIFIER_LIST"
